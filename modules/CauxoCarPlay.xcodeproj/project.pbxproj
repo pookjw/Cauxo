@@ -24,6 +24,7 @@
 			);
 			privateHeaders = (
 				"ccp+hook.hpp",
+				CCPAppSwitcherViewController.h,
 			);
 			target = 4FF283322D32932700E6D276 /* CauxoCarPlay */;
 		};
@@ -173,7 +174,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\nxcrun simctl spawn booted launchctl debug system/com.apple.CarPlayApp --environment DYLD_INSERT_LIBRARIES=\"${BUILT_PRODUCTS_DIR}/CauxoCarPlay.framework/CauxoCarPlay\" CCP_WAIT_FOR_DEBUGGER=1\n\nxcrun simctl spawn booted launchctl stop com.apple.CarPlayApp\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\nxcrun simctl spawn booted launchctl debug system/com.apple.CarPlayApp --environment CCP_WAIT_FOR_DEBUGGER=1 DYLD_INSERT_LIBRARIES=\"${BUILT_PRODUCTS_DIR}/CauxoCarPlay.framework/CauxoCarPlay\"\n\nxcrun simctl spawn booted launchctl stop com.apple.CarPlayApp\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -257,10 +258,10 @@
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++23";
 				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_ENABLE_OBJC_ARC = NO;
+				CLANG_ENABLE_OBJC_WEAK = NO;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
@@ -321,10 +322,10 @@
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++23";
 				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_ENABLE_OBJC_ARC = NO;
+				CLANG_ENABLE_OBJC_WEAK = NO;
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
