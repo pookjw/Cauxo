@@ -1,0 +1,9 @@
+Package: com.pookjw.cauxo
+Name: Cauxo
+Version: 1.0
+Architecture: iphoneos-arm64
+Description: Hello World!
+Maintainer: pookjw
+Author: pookjw
+Section: Tweaks
+Depends: firmware (>= 16.0)
