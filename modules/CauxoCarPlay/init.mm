@@ -75,6 +75,18 @@ void custom(id self, SEL _cmd) {
                 UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:switcherViewController];
                 [switcherViewController release];
                 
+                UISheetPresentationController *sheetPresentationController = navigationController.sheetPresentationController;
+                sheetPresentationController.detents = @[
+                    [UISheetPresentationControllerDetent customDetentWithIdentifier:nil resolver:^CGFloat(id<UISheetPresentationControllerDetentResolutionContext>  _Nonnull context) {
+                        return 170.;
+                    }]
+                ];
+                
+                sheetPresentationController.prefersGrabberVisible = YES;
+                sheetPresentationController.preferredCornerRadius = 0.;
+                sheetPresentationController.prefersEdgeAttachedInCompactHeight = YES;
+                reinterpret_cast<void (*)(id, SEL, BOOL)>(objc_msgSend)(sheetPresentationController, sel_registerName("_setWantsFloatingInRegularWidthCompactHeight:"), YES);
+                
                 objc_setAssociatedObject(navigationController, appSwitcherControllerKey, [NSNull null], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
                 
                 [rootViewController presentViewController:navigationController animated:YES completion:nil];

@@ -59,7 +59,7 @@
     if (auto collectionView = _collectionView) return collectionView;
     
     UICollectionViewCompositionalLayoutConfiguration *configuration = [UICollectionViewCompositionalLayoutConfiguration new];
-    configuration.scrollDirection = UICollectionViewScrollDirectionVertical;
+    configuration.scrollDirection = UICollectionViewScrollDirectionHorizontal;
     
     UICollectionViewCompositionalLayout *collectionViewLayout = [[UICollectionViewCompositionalLayout alloc] initWithSectionProvider:^NSCollectionLayoutSection * _Nullable(NSInteger sectionIndex, id<NSCollectionLayoutEnvironment>  _Nonnull layoutEnvironment) {
         NSCollectionLayoutSize *itemSize = [NSCollectionLayoutSize sizeWithWidthDimension:[NSCollectionLayoutDimension fractionalWidthDimension:0.25]
@@ -68,7 +68,7 @@
         NSCollectionLayoutItem *item = [NSCollectionLayoutItem itemWithLayoutSize:itemSize supplementaryItems:@[]];
         
         NSCollectionLayoutSize *groupSize = [NSCollectionLayoutSize sizeWithWidthDimension:[NSCollectionLayoutDimension fractionalWidthDimension:1.]
-                                                                           heightDimension:[NSCollectionLayoutDimension fractionalWidthDimension:0.25]];
+                                                                           heightDimension:[NSCollectionLayoutDimension fractionalHeightDimension:1.]];
         
         NSCollectionLayoutGroup *group = [NSCollectionLayoutGroup horizontalGroupWithLayoutSize:groupSize subitems:@[item]];
         

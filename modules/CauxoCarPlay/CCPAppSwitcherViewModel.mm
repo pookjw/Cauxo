@@ -79,7 +79,7 @@
         id request = reinterpret_cast<id (*)(id, SEL, id, id)>(objc_msgSend)([objc_lookUpClass("RBSTerminateRequest") alloc], sel_registerName("initWithPredicate:context:"), predicate, self.terminateContext);
         
         NSError * _Nullable error = nil;
-        reinterpret_cast<void (*)(id, SEL, id *)>(objc_msgSend)(request, sel_registerName("execute:"), &error);
+        reinterpret_cast<void (*)(id, SEL, id *, id *)>(objc_msgSend)(request, sel_registerName("execute:error:"), NULL, &error);
         assert(error == nil);
         [request release];
     });
