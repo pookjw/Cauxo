@@ -7,10 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4F79D4812D339F78006D72A7 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F79D4802D339F78006D72A7 /* QuartzCore.framework */; };
+		4F79D4832D33A051006D72A7 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4F79D4822D33A051006D72A7 /* CoreGraphics.framework */; };
 		4FF2834B2D3297C300E6D276 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4FF2834A2D3297C300E6D276 /* UIKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		4F79D4802D339F78006D72A7 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/Library/Frameworks/QuartzCore.framework; sourceTree = DEVELOPER_DIR; };
+		4F79D4822D33A051006D72A7 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/Library/Frameworks/CoreGraphics.framework; sourceTree = DEVELOPER_DIR; };
 		4FF283332D32932700E6D276 /* CauxoCarPlay.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = CauxoCarPlay.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		4FF2834A2D3297C300E6D276 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX15.2.sdk/System/iOSSupport/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
@@ -24,6 +28,8 @@
 			);
 			privateHeaders = (
 				"ccp+hook.hpp",
+				CCPAppSwitcherIconContentView.h,
+				CCPAppSwitcherItemModel.h,
 				CCPAppSwitcherViewController.h,
 			);
 			target = 4FF283322D32932700E6D276 /* CauxoCarPlay */;
@@ -46,6 +52,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4F79D4832D33A051006D72A7 /* CoreGraphics.framework in Frameworks */,
+				4F79D4812D339F78006D72A7 /* QuartzCore.framework in Frameworks */,
 				4FF2834B2D3297C300E6D276 /* UIKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -73,6 +81,8 @@
 		4FF283492D3297C300E6D276 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				4F79D4822D33A051006D72A7 /* CoreGraphics.framework */,
+				4F79D4802D339F78006D72A7 /* QuartzCore.framework */,
 				4FF2834A2D3297C300E6D276 /* UIKit.framework */,
 			);
 			name = Frameworks;
@@ -174,7 +184,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\nxcrun simctl spawn booted launchctl debug system/com.apple.CarPlayApp --environment CCP_WAIT_FOR_DEBUGGER=1 DYLD_INSERT_LIBRARIES=\"${BUILT_PRODUCTS_DIR}/CauxoCarPlay.framework/CauxoCarPlay\"\n\nxcrun simctl spawn booted launchctl stop com.apple.CarPlayApp\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\nxcrun simctl spawn booted launchctl debug system/com.apple.CarPlayApp --environment CCP_WAIT_FOR_DEBUGGER=1 DYLD_INSERT_LIBRARIES=\"${BUILT_PRODUCTS_DIR}/CauxoCarPlay.framework/CauxoCarPlay\" MallocStackLogging=1 MallocStackLoggingNoCompact=1 NSZombieEnabled=1\n\nxcrun simctl spawn booted launchctl stop com.apple.CarPlayApp\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
