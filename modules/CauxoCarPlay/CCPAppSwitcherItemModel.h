@@ -11,7 +11,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface CCPAppSwitcherItemModel : NSObject <NSCopying>
 @property (retain, nonatomic, readonly) id applicationInfo;
-@property (assign, nonatomic, readonly) NSUInteger state;
+@property (assign, nonatomic) NSUInteger state;
 + (instancetype)new NS_UNAVAILABLE;
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithApplicationInfo:(id)applicationInfo state:(NSUInteger)state;

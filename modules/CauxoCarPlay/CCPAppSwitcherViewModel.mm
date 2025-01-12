@@ -8,21 +8,13 @@
 #import "CCPAppSwitcherViewModel.h"
 #import <objc/message.h>
 #import <objc/runtime.h>
-
-/*
- LSApplicationWorkspace
- po [[LSApplicationWorkspace defaultWorkspace] allApplications]
- //    id monitor = [objc_lookUpClass("BKSApplicationStateMonitor") new];
- //
- //    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(monitor, sel_registerName("setHandler:"), ^(NSDictionary<NSString *, id> *info) {
- //        NSLog(@"%@", info);
- //    });
- */
+#import "NSDiffableDataSourceSnapshot+CCP_Sort.h"
 
 @interface CCPAppSwitcherViewModel ()
 @property (retain, nonatomic, readonly, getter=_dataSource) UICollectionViewDiffableDataSource<NSNull *, CCPAppSwitcherItemModel *> *dataSource;
 @property (class, nonatomic, readonly, getter=_allDashboardApplications) NSArray *allDashboardApplications;
 @property (retain, nonatomic, readonly, getter=_stateMonitor) id stateMonitor;
+@property (retain, nonatomic, readonly, getter=_terminateContext) id terminateContext;
 @property (nonatomic, readonly, getter=_calloutQueue) dispatch_queue_t calloutQueue;
 @end
 
@@ -34,6 +26,9 @@
         
         id stateMonitor = [objc_lookUpClass("BKSApplicationStateMonitor") new];
         _stateMonitor = stateMonitor;
+        
+        id terminateContext = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)([objc_lookUpClass("RBSTerminateContext") alloc], sel_registerName("initWithExplanation:"), @"killed from Cauxo");
+        _terminateContext = terminateContext;
         
         //
         
@@ -58,7 +53,36 @@
     [NSNotificationCenter.defaultCenter removeObserver:self];
     [_dataSource release];
     [_stateMonitor release];
+    [_terminateContext release];
     [super dealloc];
+}
+
+- (void)quitProcessForIndexPath:(NSIndexPath *)indexPath {
+    /*
+     +[RBSProcessPredicate predicateMatching:] // <RBSProcessHandle| application<com.apple.MobileSMS>:64523>
+     
+     -[RBSTerminateRequest initWithPredicate:context:] // <RBSTerminateContext| domain:10 code:0xDEADFA11 explanation:killed from app switcher
+     ProcessVisibility: Background
+     ProcessState: Suspended reportType:None maxTerminationResistance:Interactive>
+     
+     -[RBSTerminateRequest execute:] (NSError **)
+     
+     */
+    dispatch_async(self.calloutQueue, ^{
+        CCPAppSwitcherItemModel *itemModel = [self.dataSource itemIdentifierForIndexPath:indexPath];
+        if (itemModel == nil) return;
+        
+        NSString *bundleIdentifier = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(itemModel.applicationInfo, sel_registerName("bundleIdentifier"));
+        
+        id predicate = reinterpret_cast<id (*)(Class, SEL, id)>(objc_msgSend)(objc_lookUpClass("RBSProcessPredicate"), sel_registerName("predicateMatchingBundleIdentifier:"), bundleIdentifier);
+        
+        id request = reinterpret_cast<id (*)(id, SEL, id, id)>(objc_msgSend)([objc_lookUpClass("RBSTerminateRequest") alloc], sel_registerName("initWithPredicate:context:"), predicate, self.terminateContext);
+        
+        NSError * _Nullable error = nil;
+        reinterpret_cast<void (*)(id, SEL, id *)>(objc_msgSend)(request, sel_registerName("execute:"), &error);
+        assert(error == nil);
+        [request release];
+    });
 }
 
 - (void)_updateInterestedBundleIDs {
@@ -95,30 +119,53 @@
 
 + (void)_updateDataSource:(UICollectionViewDiffableDataSource<NSNull *, CCPAppSwitcherItemModel *> *)dataSource stateMonitor:(id)stateMonitor {
     NSArray *allDashboardApplications = CCPAppSwitcherViewModel.allDashboardApplications;
-    NSDiffableDataSourceSnapshot<NSNull *, CCPAppSwitcherItemModel *> *oldSnapshot = dataSource.snapshot;
+    NSDiffableDataSourceSnapshot<NSNull *, CCPAppSwitcherItemModel *> *snapshot = [dataSource.snapshot copy];
     
-    NSDiffableDataSourceSnapshot<NSNull *, CCPAppSwitcherItemModel *> *snapshot = [NSDiffableDataSourceSnapshot new];
-    [snapshot appendSectionsWithIdentifiers:@[[NSNull null]]];
+    if (snapshot.sectionIdentifiers.count == 0) {
+        [snapshot appendSectionsWithIdentifiers:@[[NSNull null]]];
+    }
     
     for (id applicationInfo in allDashboardApplications) {
         NSString *bundleIdentifier = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(applicationInfo, sel_registerName("bundleIdentifier"));
         NSUInteger state = reinterpret_cast<NSUInteger (*)(id, SEL, id)>(objc_msgSend)(stateMonitor, sel_registerName("applicationStateForApplication:"), bundleIdentifier);
         
-        if ((state != 2) and (state != 8)) continue;
-        
-        CCPAppSwitcherItemModel *itemModel = [[CCPAppSwitcherItemModel alloc] initWithApplicationInfo:applicationInfo state:state];
-        
-        [snapshot appendItemsWithIdentifiers:@[itemModel] intoSectionWithIdentifier:[NSNull null]];
-        
-        if ([oldSnapshot.itemIdentifiers containsObject:itemModel]) {
-            [snapshot reconfigureItemsWithIdentifiers:@[itemModel]];
+        CCPAppSwitcherItemModel * _Nullable oldItemModel = nil;
+        for (CCPAppSwitcherItemModel *_oldItemModel in snapshot.itemIdentifiers) {
+            if ([_oldItemModel.applicationInfo isEqual:applicationInfo]) {
+                oldItemModel = _oldItemModel;
+                break;
+            }
         }
         
+        if (oldItemModel != nil) {
+            if (state == 0) {
+                [snapshot deleteItemsWithIdentifiers:@[oldItemModel]];
+                continue;
+            } else if (oldItemModel.state == state) {
+                continue;
+            } else {
+                oldItemModel.state = state;
+                [snapshot reconfigureItemsWithIdentifiers:@[oldItemModel]];
+                continue;
+            }
+        } else {
+            if (state == 0) {
+                continue;
+            }
+        }
+        
+        CCPAppSwitcherItemModel *itemModel = [[CCPAppSwitcherItemModel alloc] initWithApplicationInfo:applicationInfo state:state];
+        [snapshot appendItemsWithIdentifiers:@[itemModel] intoSectionWithIdentifier:[NSNull null]];
         [itemModel release];
     }
     
-//    [dataSource applySnapshot:snapshot animatingDifferences:YES completion:nil];
-    [dataSource applySnapshotUsingReloadData:snapshot completion:nil];
+    [snapshot ccp_sortItemsWithSectionIdentifiers:snapshot.sectionIdentifiers usingComparator:^NSComparisonResult(CCPAppSwitcherItemModel * _Nonnull obj1, CCPAppSwitcherItemModel * _Nonnull obj2) {
+        NSString *displayName_1 = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(obj1.applicationInfo, sel_registerName("displayName"));
+        NSString *displayName_2 = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(obj2.applicationInfo, sel_registerName("displayName"));
+        return [displayName_1 compare:displayName_2];
+    }];
+    
+    [dataSource applySnapshot:snapshot animatingDifferences:YES completion:nil];
     [snapshot release];
 }
 

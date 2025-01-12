@@ -31,6 +31,7 @@
 				CCPAppSwitcherIconContentView.h,
 				CCPAppSwitcherItemModel.h,
 				CCPAppSwitcherViewController.h,
+				"NSDiffableDataSourceSnapshot+CCP_Sort.h",
 			);
 			target = 4FF283322D32932700E6D276 /* CauxoCarPlay */;
 		};

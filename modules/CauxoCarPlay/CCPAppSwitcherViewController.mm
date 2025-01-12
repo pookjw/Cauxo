@@ -11,7 +11,7 @@
 #import "CCPAppSwitcherViewModel.h"
 #import "CCPAppSwitcherIconContentView.h"
 
-@interface CCPAppSwitcherViewController ()
+@interface CCPAppSwitcherViewController () <UICollectionViewDelegate>
 @property (retain, nonatomic, readonly, getter=_doneBarButtonItem) UIBarButtonItem *doneBarButtonItem;
 @property (retain, nonatomic, readonly, getter=_collectionView) UICollectionView *collectionView;
 @property (retain, nonatomic, readonly, getter=_dataSource) UICollectionViewDiffableDataSource<NSNull *, CCPAppSwitcherItemModel *> *dataSource;
@@ -59,11 +59,6 @@
 - (UICollectionView *)_collectionView {
     if (auto collectionView = _collectionView) return collectionView;
     
-//    UICollectionLayoutListConfiguration *listConfiguration = [[UICollectionLayoutListConfiguration alloc] initWithAppearance:UICollectionLayoutListAppearanceInsetGrouped];
-//    
-//    UICollectionViewCompositionalLayout *collectionViewLayout = [UICollectionViewCompositionalLayout layoutWithListConfiguration:listConfiguration];
-//    [listConfiguration release];
-    
     UICollectionViewCompositionalLayoutConfiguration *configuration = [UICollectionViewCompositionalLayoutConfiguration new];
     configuration.scrollDirection = UICollectionViewScrollDirectionVertical;
     
@@ -87,6 +82,8 @@
     
     UICollectionView *collectionView = [[UICollectionView alloc] initWithFrame:CGRectNull collectionViewLayout:collectionViewLayout];
     [collectionViewLayout release];
+    
+    collectionView.delegate = self;
     
     _collectionView = collectionView;
     return collectionView;
@@ -129,6 +126,34 @@
 
 - (void)_didTriggerDoneBarButtonItem:(UIBarButtonItem *)sender {
     [self dismissViewControllerAnimated:YES completion:nil];
+}
+
+- (UIContextMenuConfiguration *)collectionView:(UICollectionView *)collectionView contextMenuConfigurationForItemsAtIndexPaths:(NSArray<NSIndexPath *> *)indexPaths point:(CGPoint)point {
+    CCPAppSwitcherViewModel *viewModel = self.viewModel;
+    
+    UIContextMenuConfiguration *configuration = [UIContextMenuConfiguration configurationWithIdentifier:nil
+                                                                                        previewProvider:nil
+                                                                                         actionProvider:^UIMenu * _Nullable(NSArray<UIMenuElement *> * _Nonnull suggestedActions) {
+        NSMutableArray<__kindof UIMenuElement *> *children = [suggestedActions mutableCopy];
+        
+        //
+        
+        UIAction *quitAction = [UIAction actionWithTitle:@"Quit" image:[UIImage systemImageNamed:@"xmark"] identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            [viewModel quitProcessForIndexPath:indexPaths[0]];
+        }];
+        
+        quitAction.attributes = UIMenuOptionsDestructive;
+        [children addObject:quitAction];
+        
+        //
+        
+        UIMenu *menu = [UIMenu menuWithChildren:children];
+        [children release];
+        
+        return menu;
+    }];
+    
+    return configuration;
 }
 
 @end

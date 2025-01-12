@@ -45,7 +45,7 @@
     
     auto casted = static_cast<CCPAppSwitcherIconContentConfiguration *>(other);
     
-    return [_itemModel.applicationInfo isEqual:casted->_itemModel.applicationInfo] &&
+    return ([_itemModel.applicationInfo isEqual:casted->_itemModel.applicationInfo]) and
     (_itemModel.state == casted->_itemModel.state);
 }
 
@@ -79,8 +79,8 @@
         [self addSubview:iconView];
         iconView.translatesAutoresizingMaskIntoConstraints = NO;
         [NSLayoutConstraint activateConstraints:@[
-            [iconView.centerYAnchor constraintEqualToAnchor:self.centerYAnchor],
-            [iconView.trailingAnchor constraintEqualToAnchor:self.trailingAnchor]
+            [iconView.centerXAnchor constraintEqualToAnchor:self.centerXAnchor],
+            [iconView.centerYAnchor constraintEqualToAnchor:self.centerYAnchor]
         ]];
         
         UILabel *statusLabel = self.statusLabel;
