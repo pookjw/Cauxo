@@ -7,39 +7,92 @@
 #import "CCPAppSwitcherViewController.h"
 #import "CCPTargetResolver.h"
 
-namespace ccp_SBIconListView {
-namespace initWithModel_layoutProvider_iconLocation_orientation_iconViewProvider_ {
-__kindof UIView * (*original)(__kindof UIView *self, SEL _cmd, id model, id layoutProvider, id iconLocation, UIInterfaceOrientation orientation, id iconViewProvider);
-__kindof UIView * custom(__kindof UIView *self, SEL _cmd, id model, id layoutProvider, id iconLocation, UIInterfaceOrientation orientation, id iconViewProvider) {
-    self = original(self, _cmd, model, layoutProvider, iconLocation, orientation, iconViewProvider);
+void *appSwitcherControllerKey = &appSwitcherControllerKey;
+
+
+namespace ccp_DBDashboard {
+namespace _handleHomeEvent_ {
+void (*original)(id self, SEL _cmd, id event);
+void custom(id self, SEL _cmd, id event) {
+    UIWindow *mainWindow = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(self, sel_registerName("mainWindow"));
+    UIViewController *rootViewController = mainWindow.rootViewController;
+    UIViewController *presentedViewController = rootViewController.presentedViewController;
     
-    if (self) {
-        CCPTargetResolver *resolver = [[CCPTargetResolver alloc] initWithHandler:^(UITapGestureRecognizer *sender) {
-            __kindof UIViewController *_viewControllerForAncestor = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(sender.view, sel_registerName("_viewControllerForAncestor"));
-            
-            CCPAppSwitcherViewController *switcherViewController = [CCPAppSwitcherViewController new];
-            UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:switcherViewController];
-            [switcherViewController release];
-            
-            [_viewControllerForAncestor presentViewController:navigationController animated:YES completion:nil];
-            [navigationController release];
-        }];
-        
-        UITapGestureRecognizer *tapGestureRecognizer = [[UITapGestureRecognizer alloc] initWithTarget:resolver action:@selector(action:)];
-        
-        [self addGestureRecognizer:tapGestureRecognizer];
-        
-        objc_setAssociatedObject(self, resolver, resolver, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-        [resolver release];
+    if (objc_getAssociatedObject(presentedViewController, appSwitcherControllerKey) != nil) {
+        [presentedViewController dismissViewControllerAnimated:YES completion:nil];
+    } else {
+        original(self, _cmd, event);
     }
-    
-    return self;
 }
 void swizzle() {
-    ccp::hookMessage(objc_lookUpClass("SBIconListView"), sel_registerName("initWithModel:layoutProvider:iconLocation:orientation:iconViewProvider:"), YES, reinterpret_cast<IMP>(custom), reinterpret_cast<IMP *>(&original));
+    ccp::hookMessage(objc_lookUpClass("DBDashboard"), sel_registerName("_handleHomeEvent:"), YES, reinterpret_cast<IMP>(custom), reinterpret_cast<IMP *>(&original));
 }
 }
 }
+
+
+namespace cpp_DBStatusBarStateProvider {
+namespace _radarItemVisible {
+BOOL (*original)(id self, SEL _cmd);
+BOOL custom(id self, SEL _cmd) {
+    return YES;
+}
+void swizzle() {
+    ccp::hookMessage(objc_lookUpClass("DBStatusBarStateProvider"), sel_registerName("_radarItemVisible"), YES, reinterpret_cast<IMP>(custom), reinterpret_cast<IMP *>(&original));
+}
+}
+namespace _radarItemEnabled {
+BOOL (*original)(id self, SEL _cmd);
+BOOL custom(id self, SEL _cmd) {
+    return YES;
+}
+void swizzle() {
+    ccp::hookMessage(objc_lookUpClass("DBStatusBarStateProvider"), sel_registerName("_radarItemEnabled"), YES, reinterpret_cast<IMP>(custom), reinterpret_cast<IMP *>(&original));
+}
+}
+}
+
+
+namespace ccp_DBDashboard {
+namespace _handleTapToRadarEvent {
+void (*original)(id self, SEL _cmd);
+void custom(id self, SEL _cmd) {
+    __kindof UIApplication *dashboard = UIApplication.sharedApplication;
+    id displayManager = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(dashboard, sel_registerName("displayManager"));
+    NSDictionary *displayToEnvironmentMap = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(displayManager, sel_registerName("displayToEnvironmentMap"));
+    
+    for (id display in displayToEnvironmentMap.allKeys) {
+        BOOL isCarDisplay = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(display, sel_registerName("isCarDisplay"));
+        
+        if (isCarDisplay) {
+            id environment = displayToEnvironmentMap[display];
+            UIWindow *mainWindow = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(environment, sel_registerName("mainWindow"));
+            UIViewController *rootViewController = mainWindow.rootViewController;
+            UIViewController *presentedViewController = rootViewController.presentedViewController;
+            
+            if (presentedViewController == nil) {
+                CCPAppSwitcherViewController *switcherViewController = [CCPAppSwitcherViewController new];
+                UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:switcherViewController];
+                [switcherViewController release];
+                
+                objc_setAssociatedObject(navigationController, appSwitcherControllerKey, [NSNull null], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+                
+                [rootViewController presentViewController:navigationController animated:YES completion:nil];
+                [navigationController release];
+            } else if (objc_getAssociatedObject(presentedViewController, appSwitcherControllerKey) != nil) {
+                [presentedViewController dismissViewControllerAnimated:YES completion:nil];
+            }
+            
+            break;
+        }
+    }
+}
+void swizzle() {
+    ccp::hookMessage(objc_lookUpClass("DBDashboard"), sel_registerName("_handleTapToRadarEvent"), YES, reinterpret_cast<IMP>(custom), reinterpret_cast<IMP *>(&original));
+}
+}
+}
+
 
 __attribute__((constructor)) static void init() {
 #if DEBUG
@@ -48,5 +101,8 @@ __attribute__((constructor)) static void init() {
     }
 #endif
     
-    ccp_SBIconListView::initWithModel_layoutProvider_iconLocation_orientation_iconViewProvider_::swizzle();
+    ccp_DBDashboard::_handleHomeEvent_::swizzle();
+    cpp_DBStatusBarStateProvider::_radarItemVisible::swizzle();
+    cpp_DBStatusBarStateProvider::_radarItemEnabled::swizzle();
+    ccp_DBDashboard::_handleTapToRadarEvent::swizzle();
 }

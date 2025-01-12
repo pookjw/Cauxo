@@ -34,7 +34,6 @@
 				CCPAppSwitcherViewModel.h,
 				CCPTargetResolver.h,
 				"NSDiffableDataSourceSnapshot+CCP_Sort.h",
-				"NSObject+Foundation_IvarDescription.h",
 			);
 			target = 4FF283322D32932700E6D276 /* CauxoCarPlay */;
 		};

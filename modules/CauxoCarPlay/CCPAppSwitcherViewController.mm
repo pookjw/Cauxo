@@ -43,7 +43,6 @@
     [super viewDidLoad];
     
     [self _viewModel];
-    self.navigationItem.title = @"App Switcher";
     self.navigationItem.rightBarButtonItem = self.doneBarButtonItem;
 }
 
@@ -74,6 +73,37 @@
         NSCollectionLayoutGroup *group = [NSCollectionLayoutGroup horizontalGroupWithLayoutSize:groupSize subitems:@[item]];
         
         NSCollectionLayoutSection *section = [NSCollectionLayoutSection sectionWithGroup:group];
+        
+        //
+        
+        __kindof UIApplication *dashboard = UIApplication.sharedApplication;
+        id displayManager = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(dashboard, sel_registerName("displayManager"));
+        NSDictionary *displayToEnvironmentMap = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(displayManager, sel_registerName("displayToEnvironmentMap"));
+        
+        for (id display in displayToEnvironmentMap.allKeys) {
+            BOOL isCarDisplay = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(display, sel_registerName("isCarDisplay"));
+            
+            if (isCarDisplay) {
+                id environment = displayToEnvironmentMap[display];
+                id configuration = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(environment, sel_registerName("environmentConfiguration"));
+                
+                id layoutEngine = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)([objc_lookUpClass("DBDashboardLayoutEngine") alloc], sel_registerName("initWithEnvironmentConfiguration:"), configuration);
+                UIEdgeInsets homeViewControllerInsets = reinterpret_cast<UIEdgeInsets (*)(id, SEL)>(objc_msgSend)(layoutEngine, sel_registerName("homeViewControllerInsets"));
+                
+                UITraitCollection *traitCollection = [layoutEnvironment traitCollection];
+                
+                if (traitCollection.layoutDirection == UITraitEnvironmentLayoutDirectionLeftToRight) {
+                    section.contentInsets = NSDirectionalEdgeInsetsMake(homeViewControllerInsets.top, homeViewControllerInsets.left, homeViewControllerInsets.right, homeViewControllerInsets.bottom);
+                } else {
+                    section.contentInsets = NSDirectionalEdgeInsetsMake(homeViewControllerInsets.top, homeViewControllerInsets.right, homeViewControllerInsets.left, homeViewControllerInsets.bottom);
+                }
+                
+                break;
+            }
+        }
+        
+        //
+        
         
         return section;
     }
