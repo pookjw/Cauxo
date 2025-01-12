@@ -117,7 +117,7 @@
         [itemModel release];
     }
     
-    [dataSource applySnapshot:snapshot animatingDifferences:YES completion:nil];
+//    [dataSource applySnapshot:snapshot animatingDifferences:YES completion:nil];
     [dataSource applySnapshotUsingReloadData:snapshot completion:nil];
     [snapshot release];
 }
