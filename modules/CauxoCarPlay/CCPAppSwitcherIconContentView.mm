@@ -22,6 +22,17 @@
          - (id) shortcutsDelegateForIconView:(id)arg1;
  */
 
+/*
+ 앱 새로 시작 후 App Switcher 가면 -[PBUIBakedEffectSnapshotSource initWithSnapshotSource:]이 불림 이거 보기
+ 
+ -[PBUIBakedEffectSnapshotSource snapshot]
+ -[PBUIBakedEffectSnapshotSource initWithSnapshotSource:]
+ -[PBUIURLBackedSnapshotSource initWithURL:format:metadataURL:delegate:]
+ 
+ -[PBUIPosterVariantViewController initWithScene:cache:]
+ 
+ */
+
 @implementation CCPAppSwitcherIconContentConfiguration
 
 + (void)load {
