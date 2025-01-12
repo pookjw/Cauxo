@@ -9,7 +9,26 @@
 #import <objc/message.h>
 #import <objc/runtime.h>
 
+/*
+ (lldb) po [NSObject _fd__protocolDescriptionForProtocol:(Protocol *)NSProtocolFromString(@"SBIconViewDelegate")]
+ <SBIconViewDelegate: 0x103bb6220> (SBIconViewActionDelegate, SBIconViewBehaviorDelegate, SBIconViewReuseDelegate, SBIconViewDragDelegate, SBIconViewShortcutsDelegate, SBIconViewConfigurationUIDelegate, NSObject) :
+ in SBIconViewDelegate:
+     Instance Methods:
+         - (id) actionDelegateForIconView:(id)arg1;
+         - (id) behaviorDelegateForIconView:(id)arg1;
+         - (id) configurationUIDelegateForIconView:(id)arg1;
+         - (id) draggingDelegateForIconView:(id)arg1;
+         - (id) reuseDelegateForIconView:(id)arg1;
+         - (id) shortcutsDelegateForIconView:(id)arg1;
+ */
+
 @implementation CCPAppSwitcherIconContentConfiguration
+
++ (void)load {
+    if (Protocol *SBIconViewDelegate = NSProtocolFromString(@"SBIconViewDelegate")) {
+        assert(class_addProtocol(self, SBIconViewDelegate));
+    }
+}
 
 - (instancetype)initWithItemModel:(CCPAppSwitcherItemModel *)itemModel {
     if (self = [super init]) {
@@ -113,6 +132,8 @@
     
     __kindof UIView *iconView = [objc_lookUpClass("DBIconView") new];
     
+    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(iconView, sel_registerName("setDelegate:"), self);
+    
     _iconView = iconView;
     return iconView;
 }
@@ -155,6 +176,53 @@
             self.statusLabel.text = [NSString stringWithFormat:@"Status: %ld", copy.itemModel.state];
             break;
     }
+}
+
+- (void)iconTapped:(id)icon {
+    __kindof UIViewController *_viewControllerForAncestor = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(self, sel_registerName("_viewControllerForAncestor"));
+    [_viewControllerForAncestor dismissViewControllerAnimated:YES completion:^{
+        /*
+         -[DBDashboard handleEvent:]
+         -[DBDashboard _handleOpenApplicationEvent:]
+         
+         ---
+         
+         -[DBEvent initWithType:context:]
+         -> type = 4 - Open,  1 - Home (takeScreen)
+         -> context = DBApplicationLaunchInfo
+            -> -[DBApplicationLaunchInfo initWithApplication:activationSettings:]
+                -> (x2) DBApplicationInfo
+                -> (x3 - Open App) {DBActivationSettingLaunchSource = 3}
+                -> (x3 - Home) @(0)
+         
+         -[DBDashboard handleEvent:]
+         */
+        
+        CCPAppSwitcherIconContentConfiguration *contentConfiguration = self.configuration;
+        if (contentConfiguration == nil) return;
+        
+        id context = reinterpret_cast<id (*)(id, SEL, id, id)>(objc_msgSend)([objc_lookUpClass("DBApplicationLaunchInfo") alloc], sel_registerName("initWithApplication:activationSettings:"), contentConfiguration.itemModel.applicationInfo, @{@"DBActivationSettingLaunchSource": @(3)});
+        
+        id event = reinterpret_cast<id (*)(id, SEL, NSUInteger, id)>(objc_msgSend)([objc_lookUpClass("DBEvent") alloc], sel_registerName("initWithType:context:"), 4, context);
+        [context release];
+        
+        __kindof UIApplication *dashboard = UIApplication.sharedApplication;
+        id displayManager = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(dashboard, sel_registerName("displayManager"));
+        NSDictionary *displayToEnvironmentMap = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(displayManager, sel_registerName("displayToEnvironmentMap"));
+        
+        for (id display in displayToEnvironmentMap.allKeys) {
+            BOOL isCarDisplay = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(display, sel_registerName("isCarDisplay"));
+            
+            if (isCarDisplay) {
+                id environment = displayToEnvironmentMap[display];
+                
+                reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(environment, sel_registerName("handleEvent:"), event);
+                break;
+            }
+        }
+        
+        [event release];
+    }];
 }
 
 @end
