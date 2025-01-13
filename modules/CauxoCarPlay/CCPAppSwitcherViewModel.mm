@@ -85,6 +85,54 @@
     });
 }
 
+- (void)launchApplicationAtIndexPath:(NSIndexPath *)indexPath {
+    dispatch_async(self.calloutQueue, ^{
+        CCPAppSwitcherItemModel *itemModel = [self.dataSource itemIdentifierForIndexPath:indexPath];
+        if (itemModel == nil) return;
+        
+        dispatch_async(dispatch_get_main_queue(), ^{
+            /*
+             -[DBDashboard handleEvent:]
+             -[DBDashboard _handleOpenApplicationEvent:]
+             
+             ---
+             
+             -[DBEvent initWithType:context:]
+             -> type = 4 - Open,  1 - Home (takeScreen)
+             -> context = DBApplicationLaunchInfo
+                -> -[DBApplicationLaunchInfo initWithApplication:activationSettings:]
+                    -> (x2) DBApplicationInfo
+                    -> (x3 - Open App) {DBActivationSettingLaunchSource = 3}
+                    -> (x3 - Home) @(0)
+             
+             -[DBDashboard handleEvent:]
+             */
+            
+            id context = reinterpret_cast<id (*)(id, SEL, id, id)>(objc_msgSend)([objc_lookUpClass("DBApplicationLaunchInfo") alloc], sel_registerName("initWithApplication:activationSettings:"), itemModel.applicationInfo, @{@"DBActivationSettingLaunchSource": @(3)});
+            
+            id event = reinterpret_cast<id (*)(id, SEL, NSUInteger, id)>(objc_msgSend)([objc_lookUpClass("DBEvent") alloc], sel_registerName("initWithType:context:"), 4, context);
+            [context release];
+            
+            __kindof UIApplication *dashboard = UIApplication.sharedApplication;
+            id displayManager = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(dashboard, sel_registerName("displayManager"));
+            NSDictionary *displayToEnvironmentMap = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(displayManager, sel_registerName("displayToEnvironmentMap"));
+            
+            for (id display in displayToEnvironmentMap.allKeys) {
+                BOOL isCarDisplay = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(display, sel_registerName("isCarDisplay"));
+                
+                if (isCarDisplay) {
+                    id environment = displayToEnvironmentMap[display];
+                    
+                    reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(environment, sel_registerName("handleEvent:"), event);
+                    break;
+                }
+            }
+            
+            [event release];
+        });
+    });
+}
+
 - (void)_updateInterestedBundleIDs {
     NSArray *allDashboardApplications = CCPAppSwitcherViewModel.allDashboardApplications;
     NSMutableArray<NSString *> *bundleIdentifiers = [[NSMutableArray alloc] initWithCapacity:allDashboardApplications.count];
@@ -154,10 +202,7 @@
             }
         }
         
-        id snapshotMenifest = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)([objc_lookUpClass("XBApplicationSnapshotManifest") alloc], sel_registerName("initWithApplicationInfo:"), applicationInfo);
-        
-        CCPAppSwitcherItemModel *itemModel = [[CCPAppSwitcherItemModel alloc] initWithApplicationInfo:applicationInfo state:state snapshotMenifest:snapshotMenifest];
-        [snapshotMenifest release];
+        CCPAppSwitcherItemModel *itemModel = [[CCPAppSwitcherItemModel alloc] initWithApplicationInfo:applicationInfo state:state];
         
         [snapshot appendItemsWithIdentifiers:@[itemModel] intoSectionWithIdentifier:[NSNull null]];
         [itemModel release];

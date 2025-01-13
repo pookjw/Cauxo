@@ -62,12 +62,12 @@
     configuration.scrollDirection = UICollectionViewScrollDirectionHorizontal;
     
     UICollectionViewCompositionalLayout *collectionViewLayout = [[UICollectionViewCompositionalLayout alloc] initWithSectionProvider:^NSCollectionLayoutSection * _Nullable(NSInteger sectionIndex, id<NSCollectionLayoutEnvironment>  _Nonnull layoutEnvironment) {
-        NSCollectionLayoutSize *itemSize = [NSCollectionLayoutSize sizeWithWidthDimension:[NSCollectionLayoutDimension fractionalWidthDimension:0.25]
+        NSCollectionLayoutSize *itemSize = [NSCollectionLayoutSize sizeWithWidthDimension:[NSCollectionLayoutDimension fractionalWidthDimension:1.]
                                                                           heightDimension:[NSCollectionLayoutDimension fractionalHeightDimension:1.]];
         
         NSCollectionLayoutItem *item = [NSCollectionLayoutItem itemWithLayoutSize:itemSize supplementaryItems:@[]];
         
-        NSCollectionLayoutSize *groupSize = [NSCollectionLayoutSize sizeWithWidthDimension:[NSCollectionLayoutDimension fractionalWidthDimension:1.]
+        NSCollectionLayoutSize *groupSize = [NSCollectionLayoutSize sizeWithWidthDimension:[NSCollectionLayoutDimension absoluteDimension:100.]
                                                                            heightDimension:[NSCollectionLayoutDimension fractionalHeightDimension:1.]];
         
         NSCollectionLayoutGroup *group = [NSCollectionLayoutGroup horizontalGroupWithLayoutSize:groupSize subitems:@[item]];
@@ -93,9 +93,15 @@
                 UITraitCollection *traitCollection = [layoutEnvironment traitCollection];
                 
                 if (traitCollection.layoutDirection == UITraitEnvironmentLayoutDirectionLeftToRight) {
-                    section.contentInsets = NSDirectionalEdgeInsetsMake(homeViewControllerInsets.top, homeViewControllerInsets.left, homeViewControllerInsets.right, homeViewControllerInsets.bottom);
+                    section.contentInsets = NSDirectionalEdgeInsetsMake(homeViewControllerInsets.top + 20.,
+                                                                        homeViewControllerInsets.left + 10.,
+                                                                        homeViewControllerInsets.bottom + 10.,
+                                                                        homeViewControllerInsets.right + 10.);
                 } else {
-                    section.contentInsets = NSDirectionalEdgeInsetsMake(homeViewControllerInsets.top, homeViewControllerInsets.right, homeViewControllerInsets.left, homeViewControllerInsets.bottom);
+                    section.contentInsets = NSDirectionalEdgeInsetsMake(homeViewControllerInsets.top + 20.,
+                                                                        homeViewControllerInsets.right + 10.,
+                                                                        homeViewControllerInsets.bottom + 10.,
+                                                                        homeViewControllerInsets.left + 10.);
                 }
                 
                 break;
@@ -158,13 +164,31 @@
     [self dismissViewControllerAnimated:YES completion:nil];
 }
 
+- (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath{
+    [collectionView deselectItemAtIndexPath:indexPath animated:YES];
+    
+    [self dismissViewControllerAnimated:YES completion:^{
+        [self.viewModel launchApplicationAtIndexPath:indexPath];
+    }];
+}
+
 - (UIContextMenuConfiguration *)collectionView:(UICollectionView *)collectionView contextMenuConfigurationForItemsAtIndexPaths:(NSArray<NSIndexPath *> *)indexPaths point:(CGPoint)point {
     CCPAppSwitcherViewModel *viewModel = self.viewModel;
+    __block auto unretained = self;
     
     UIContextMenuConfiguration *configuration = [UIContextMenuConfiguration configurationWithIdentifier:nil
                                                                                         previewProvider:nil
                                                                                          actionProvider:^UIMenu * _Nullable(NSArray<UIMenuElement *> * _Nonnull suggestedActions) {
         NSMutableArray<__kindof UIMenuElement *> *children = [suggestedActions mutableCopy];
+        
+        //
+        
+        UIAction *openAction = [UIAction actionWithTitle:@"Open" image:[UIImage systemImageNamed:@"arrow.up.forward.app"] identifier:nil handler:^(__kindof UIAction * _Nonnull action) {
+            [unretained dismissViewControllerAnimated:YES completion:^{
+                [viewModel launchApplicationAtIndexPath:indexPaths[0]];
+            }];
+        }];
+        [children addObject:openAction];
         
         //
         

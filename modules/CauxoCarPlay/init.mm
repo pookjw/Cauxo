@@ -75,6 +75,8 @@ void custom(id self, SEL _cmd) {
                 UINavigationController *navigationController = [[UINavigationController alloc] initWithRootViewController:switcherViewController];
                 [switcherViewController release];
                 
+                [navigationController setNavigationBarHidden:YES animated:NO];
+                
                 UISheetPresentationController *sheetPresentationController = navigationController.sheetPresentationController;
                 sheetPresentationController.detents = @[
                     [UISheetPresentationControllerDetent customDetentWithIdentifier:nil resolver:^CGFloat(id<UISheetPresentationControllerDetentResolutionContext>  _Nonnull context) {
@@ -106,6 +108,19 @@ void swizzle() {
 }
 
 
+namespace cpp_UIStatusBarRadarItem {
+namespace imageForUpdate_ {
+UIImage * (*original)(id self, SEL _cmd, id update);
+UIImage * custom(id self, SEL _cmd, id update) {
+    return [UIImage systemImageNamed:@"rectangle.stack.fill"];
+}
+void swizzle() {
+    ccp::hookMessage(objc_lookUpClass("_UIStatusBarRadarItem"), sel_registerName("imageForUpdate:"), YES, reinterpret_cast<IMP>(custom), reinterpret_cast<IMP *>(&original));
+}
+}
+}
+
+
 __attribute__((constructor)) static void init() {
 #if DEBUG
     if (static_cast<NSNumber *>(NSProcessInfo.processInfo.environment[@"CCP_WAIT_FOR_DEBUGGER"]).boolValue) {
@@ -119,4 +134,5 @@ __attribute__((constructor)) static void init() {
     cpp_DBStatusBarStateProvider::_radarItemVisible::swizzle();
     cpp_DBStatusBarStateProvider::_radarItemEnabled::swizzle();
     ccp_DBDashboard::_handleTapToRadarEvent::swizzle();
+    cpp_UIStatusBarRadarItem::imageForUpdate_::swizzle();
 }

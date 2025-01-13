@@ -9,11 +9,10 @@
 
 @implementation CCPAppSwitcherItemModel
 
-- (instancetype)initWithApplicationInfo:(id)applicationInfo state:(NSUInteger)state snapshotMenifest:(id)snapshotMenifest {
+- (instancetype)initWithApplicationInfo:(id)applicationInfo state:(NSUInteger)state {
     if (self = [super init]) {
         _applicationInfo = [applicationInfo retain];
         _state = state;
-        _snapshotMenifest = [snapshotMenifest retain];
     }
     
     return self;
@@ -21,7 +20,6 @@
 
 - (void)dealloc {
     [_applicationInfo release];
-    [_snapshotMenifest release];
     [super dealloc];
 }
 
@@ -48,7 +46,6 @@
     if (copy) {
         copy->_applicationInfo = [_applicationInfo retain];
         copy->_state = _state;
-        copy->_snapshotMenifest = [_snapshotMenifest retain];
     }
     
     return copy;

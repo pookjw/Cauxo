@@ -6,16 +6,9 @@
 //
 
 #import <UIKit/UIKit.h>
-#import "CCPAppSwitcherItemModel.h"
+#import "CCPAppSwitcherIconContentConfiguration.h"
 
 NS_ASSUME_NONNULL_BEGIN
-
-@interface CCPAppSwitcherIconContentConfiguration : NSObject <UIContentConfiguration>
-@property (copy, nonatomic, readonly) CCPAppSwitcherItemModel *itemModel;
-+ (instancetype)new NS_UNAVAILABLE;
-- (instancetype)init NS_UNAVAILABLE;
-- (instancetype)initWithItemModel:(CCPAppSwitcherItemModel *)itemModel;
-@end
 
 @interface CCPAppSwitcherIconContentView : UIView <UIContentView>
 + (instancetype)new NS_UNAVAILABLE;

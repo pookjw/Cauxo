@@ -28,6 +28,7 @@
 			);
 			privateHeaders = (
 				"ccp+hook.hpp",
+				CCPAppSwitcherIconContentConfiguration.h,
 				CCPAppSwitcherIconContentView.h,
 				CCPAppSwitcherItemModel.h,
 				CCPAppSwitcherViewController.h,

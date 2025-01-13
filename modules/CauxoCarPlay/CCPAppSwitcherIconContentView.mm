@@ -8,84 +8,26 @@
 #import "CCPAppSwitcherIconContentView.h"
 #import <objc/message.h>
 #import <objc/runtime.h>
+#include <ranges>
 
 /*
  (lldb) po [NSObject _fd__protocolDescriptionForProtocol:(Protocol *)NSProtocolFromString(@"SBIconViewDelegate")]
  <SBIconViewDelegate: 0x103bb6220> (SBIconViewActionDelegate, SBIconViewBehaviorDelegate, SBIconViewReuseDelegate, SBIconViewDragDelegate, SBIconViewShortcutsDelegate, SBIconViewConfigurationUIDelegate, NSObject) :
  in SBIconViewDelegate:
-     Instance Methods:
-         - (id) actionDelegateForIconView:(id)arg1;
-         - (id) behaviorDelegateForIconView:(id)arg1;
-         - (id) configurationUIDelegateForIconView:(id)arg1;
-         - (id) draggingDelegateForIconView:(id)arg1;
-         - (id) reuseDelegateForIconView:(id)arg1;
-         - (id) shortcutsDelegateForIconView:(id)arg1;
+ Instance Methods:
+ - (id) actionDelegateForIconView:(id)arg1;
+ - (id) behaviorDelegateForIconView:(id)arg1;
+ - (id) configurationUIDelegateForIconView:(id)arg1;
+ - (id) draggingDelegateForIconView:(id)arg1;
+ - (id) reuseDelegateForIconView:(id)arg1;
+ - (id) shortcutsDelegateForIconView:(id)arg1;
  */
-
-@implementation CCPAppSwitcherIconContentConfiguration
-
-+ (void)load {
-    if (Protocol *SBIconViewDelegate = NSProtocolFromString(@"SBIconViewDelegate")) {
-        assert(class_addProtocol(self, SBIconViewDelegate));
-    }
-}
-
-- (instancetype)initWithItemModel:(CCPAppSwitcherItemModel *)itemModel {
-    if (self = [super init]) {
-        _itemModel = [itemModel copy];
-    }
-    
-    return self;
-}
-
-- (void)dealloc {
-    [_itemModel release];
-    [super dealloc];
-}
-
-- (id)copyWithZone:(struct _NSZone *)zone {
-    CCPAppSwitcherIconContentConfiguration *copy = [[[self class] allocWithZone:zone] init];
-    
-    if (copy) {
-        copy->_itemModel = [_itemModel copyWithZone:zone];
-    }
-    
-    return copy;
-}
-
-- (BOOL)isEqual:(id)other {
-    if (other == self) {
-        return YES;
-    }
-    
-    if (![other isKindOfClass:[CCPAppSwitcherIconContentConfiguration class]]) {
-        return NO;
-    }
-    
-    auto casted = static_cast<CCPAppSwitcherIconContentConfiguration *>(other);
-    
-    return ([_itemModel.applicationInfo isEqual:casted->_itemModel.applicationInfo]) and
-    (_itemModel.state == casted->_itemModel.state);
-}
-
-- (NSUInteger)hash {
-    return [_itemModel.applicationInfo hash] ^ _itemModel.state;
-}
-
-- (__kindof UIView<UIContentView> *)makeContentView {
-    return [[[CCPAppSwitcherIconContentView alloc] initWithConfiguration:self] autorelease];
-}
-
-- (instancetype)updatedConfigurationForState:(id<UIConfigurationState>)state {
-    return self;
-}
-
-@end
 
 @interface CCPAppSwitcherIconContentView ()
 @property (retain, nonatomic, readonly, getter=_snapshotImageView) UIImageView *snapshotImageView;
 @property (retain, nonatomic, readonly, getter=_iconView) __kindof UIView *iconView;
 @property (retain, nonatomic, readonly, getter=_statusLabel) UILabel *statusLabel;
+@property (retain, nonatomic, getter=_timer, setter=_setTimer:) NSTimer *timer;
 @end
 
 @implementation CCPAppSwitcherIconContentView
@@ -93,6 +35,13 @@
 @synthesize snapshotImageView = _snapshotImageView;
 @synthesize iconView = _iconView;
 @synthesize statusLabel = _statusLabel;
+@synthesize timer = _timer;
+
++ (void)load {
+    if (Protocol *SBIconViewDelegate = NSProtocolFromString(@"SBIconViewDelegate")) {
+        assert(class_addProtocol(self, SBIconViewDelegate));
+    }
+}
 
 - (instancetype)initWithConfiguration:(CCPAppSwitcherIconContentConfiguration *)configuration {
     if (self = [super initWithFrame:CGRectNull]) {
@@ -116,6 +65,8 @@
             [statusLabel.bottomAnchor constraintEqualToAnchor:self.bottomAnchor]
         ]];
         
+        statusLabel.hidden = YES;
+        
         self.configuration = configuration;
     }
     
@@ -127,7 +78,24 @@
     [_iconView release];
     [_snapshotImageView release];
     [_statusLabel release];
+    [_timer invalidate];
+    [_timer release];
     [super dealloc];
+}
+
+- (void)didMoveToWindow {
+    [super didMoveToWindow];
+    
+    if (self.window == nil) {
+        [self.timer invalidate];
+        self.timer = nil;
+    } else {
+        assert(self.timer == nil);
+        
+        NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:2. target:self selector:@selector(_didTriggerTimer:) userInfo:nil repeats:YES];
+        [NSRunLoop.mainRunLoop addTimer:timer forMode:NSRunLoopCommonModes];
+        self.timer = timer;
+    }
 }
 
 - (BOOL)supportsConfiguration:(id<UIContentConfiguration>)configuration {
@@ -149,8 +117,14 @@
     
     __kindof UIView *iconView = [objc_lookUpClass("DBIconView") new];
     
-    iconView.transform = CGAffineTransformMakeScale(0.5, 0.5);
+    iconView.layer.shadowColor = UIColor.blackColor.CGColor;
+    iconView.layer.shadowOpacity = 0.75;
+    iconView.layer.shadowOffset = CGSizeZero;
+    iconView.layer.shadowRadius = 10.;
+    iconView.transform = CGAffineTransformScale(CGAffineTransformMakeTranslation(0., 35.), 0.75, 0.75);
+    
     reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(iconView, sel_registerName("setDelegate:"), self);
+    iconView.userInteractionEnabled = NO;
     
     _iconView = iconView;
     return iconView;
@@ -197,74 +171,68 @@
     
     //
     
-    NSString *bundleIdentifier = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(copy.itemModel.applicationInfo, sel_registerName("bundleIdentifier"));
-    id snapshotMenifest = copy.itemModel.snapshotMenifest;
+    [UIView animateWithDuration:0.2 animations:^{
+        self.snapshotImageView.alpha = (copy.isSelected or copy.isHighlighted) ? 0.5 : 1.;
+    }];
+    
+    //
+    
+    self.snapshotImageView.image = nil;
+    [self _didTriggerTimer:nil];
+}
+
+- (void)_didTriggerTimer:(NSTimer *)sender {
+    CCPAppSwitcherIconContentConfiguration *configuration = self.configuration;
+    if (configuration == nil) return;
+    
+//    NSString *bundleIdentifier = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(configuration.itemModel.applicationInfo, sel_registerName("bundleIdentifier"));
+    id snapshotMenifest = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)([objc_lookUpClass("XBApplicationSnapshotManifest") alloc], sel_registerName("initWithApplicationInfo:"), configuration.itemModel.applicationInfo);
     id manifestImpl = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(snapshotMenifest, sel_registerName("manifestImpl"));
+    [snapshotMenifest release];
+    
     NSDictionary<NSString *, id> *_snapshotGroupsByID;
     assert(object_getInstanceVariable(manifestImpl, "_snapshotGroupsByID", reinterpret_cast<void **>(&_snapshotGroupsByID)) != NULL);
     
+    NSMutableArray *allSnapshots = [NSMutableArray new];
+    
     for (NSString *sceneID in _snapshotGroupsByID.allKeys) {
-        if (![sceneID hasPrefix:[NSString stringWithFormat:@"sceneID:%@", bundleIdentifier]]) continue;
+        //            if (![sceneID hasPrefix:[NSString stringWithFormat:@"sceneID:%@", bundleIdentifier]]) continue;
         
         id group = _snapshotGroupsByID[sceneID];
-        
         NSSet *snapshots = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(group, sel_registerName("snapshots"));
-        for (id snapshot in snapshots) {
-            id snapshotImage = reinterpret_cast<id (*)(id, SEL, NSInteger)>(objc_msgSend)(snapshot, sel_registerName("imageForInterfaceOrientation:"), 0);
-            
-            if (snapshotImage != nil) {
-                self.snapshotImageView.image = snapshotImage;
-                break;
-            }
+        [allSnapshots addObjectsFromArray:snapshots.allObjects];
+    }
+    
+    [allSnapshots sortedArrayUsingComparator:^NSComparisonResult(id  _Nonnull obj1, id  _Nonnull obj2) {
+        NSDate *date_1 = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(obj1, sel_registerName("lastUsedDate"));
+        NSDate *date_2 = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(obj2, sel_registerName("lastUsedDate"));
+        
+        return [date_2 compare:date_1];
+    }];
+    
+    for (id snapshot in allSnapshots) {
+        reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(snapshot, sel_registerName("beginImageAccess"));
+        
+        __kindof UIImage * _Nullable snapshotImage = nil;
+        for (NSInteger interfaceOrientation : std::views::iota(0, 4)) {
+            snapshotImage = reinterpret_cast<id (*)(id, SEL, NSInteger)>(objc_msgSend)(snapshot, sel_registerName("imageForInterfaceOrientation:"), interfaceOrientation);
+            if (snapshotImage != nil) break;
+        }
+        
+        reinterpret_cast<void (*)(id, SEL)>(objc_msgSend)(snapshot, sel_registerName("endImageAccess"));
+        
+        if (snapshotImage != nil) {
+            self.snapshotImageView.image = snapshotImage;
+            break;
         }
     }
+    
+    [allSnapshots release];
+    
 }
 
 - (void)iconTapped:(id)icon {
-    __kindof UIViewController *_viewControllerForAncestor = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(self, sel_registerName("_viewControllerForAncestor"));
-    [_viewControllerForAncestor dismissViewControllerAnimated:YES completion:^{
-        /*
-         -[DBDashboard handleEvent:]
-         -[DBDashboard _handleOpenApplicationEvent:]
-         
-         ---
-         
-         -[DBEvent initWithType:context:]
-         -> type = 4 - Open,  1 - Home (takeScreen)
-         -> context = DBApplicationLaunchInfo
-            -> -[DBApplicationLaunchInfo initWithApplication:activationSettings:]
-                -> (x2) DBApplicationInfo
-                -> (x3 - Open App) {DBActivationSettingLaunchSource = 3}
-                -> (x3 - Home) @(0)
-         
-         -[DBDashboard handleEvent:]
-         */
-        
-        CCPAppSwitcherIconContentConfiguration *contentConfiguration = self.configuration;
-        if (contentConfiguration == nil) return;
-        
-        id context = reinterpret_cast<id (*)(id, SEL, id, id)>(objc_msgSend)([objc_lookUpClass("DBApplicationLaunchInfo") alloc], sel_registerName("initWithApplication:activationSettings:"), contentConfiguration.itemModel.applicationInfo, @{@"DBActivationSettingLaunchSource": @(3)});
-        
-        id event = reinterpret_cast<id (*)(id, SEL, NSUInteger, id)>(objc_msgSend)([objc_lookUpClass("DBEvent") alloc], sel_registerName("initWithType:context:"), 4, context);
-        [context release];
-        
-        __kindof UIApplication *dashboard = UIApplication.sharedApplication;
-        id displayManager = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(dashboard, sel_registerName("displayManager"));
-        NSDictionary *displayToEnvironmentMap = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(displayManager, sel_registerName("displayToEnvironmentMap"));
-        
-        for (id display in displayToEnvironmentMap.allKeys) {
-            BOOL isCarDisplay = reinterpret_cast<BOOL (*)(id, SEL)>(objc_msgSend)(display, sel_registerName("isCarDisplay"));
-            
-            if (isCarDisplay) {
-                id environment = displayToEnvironmentMap[display];
-                
-                reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(environment, sel_registerName("handleEvent:"), event);
-                break;
-            }
-        }
-        
-        [event release];
-    }];
+    
 }
 
 @end
