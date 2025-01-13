@@ -113,6 +113,8 @@ __attribute__((constructor)) static void init() {
     }
 #endif
     
+    assert(dlopen("/System/Library/PrivateFrameworks/SplashBoard.framework/SplashBoard", RTLD_NOW) != NULL);
+    
     ccp_DBDashboard::_handleHomeEvent_::swizzle();
     cpp_DBStatusBarStateProvider::_radarItemVisible::swizzle();
     cpp_DBStatusBarStateProvider::_radarItemEnabled::swizzle();

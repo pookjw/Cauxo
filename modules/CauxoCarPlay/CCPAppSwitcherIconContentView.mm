@@ -22,17 +22,6 @@
          - (id) shortcutsDelegateForIconView:(id)arg1;
  */
 
-/*
- 앱 새로 시작 후 App Switcher 가면 -[PBUIBakedEffectSnapshotSource initWithSnapshotSource:]이 불림 이거 보기
- 
- -[PBUIBakedEffectSnapshotSource snapshot]
- -[PBUIBakedEffectSnapshotSource initWithSnapshotSource:]
- -[PBUIURLBackedSnapshotSource initWithURL:format:metadataURL:delegate:]
- 
- -[PBUIPosterVariantViewController initWithScene:cache:]
- 
- */
-
 @implementation CCPAppSwitcherIconContentConfiguration
 
 + (void)load {
@@ -94,17 +83,23 @@
 @end
 
 @interface CCPAppSwitcherIconContentView ()
+@property (retain, nonatomic, readonly, getter=_snapshotImageView) UIImageView *snapshotImageView;
 @property (retain, nonatomic, readonly, getter=_iconView) __kindof UIView *iconView;
 @property (retain, nonatomic, readonly, getter=_statusLabel) UILabel *statusLabel;
 @end
 
 @implementation CCPAppSwitcherIconContentView
 @synthesize configuration = _configuration;
-@synthesize statusLabel = _statusLabel;
+@synthesize snapshotImageView = _snapshotImageView;
 @synthesize iconView = _iconView;
+@synthesize statusLabel = _statusLabel;
 
 - (instancetype)initWithConfiguration:(CCPAppSwitcherIconContentConfiguration *)configuration {
     if (self = [super initWithFrame:CGRectNull]) {
+        UIImageView *snapshotImageView = self.snapshotImageView;
+        [self addSubview:snapshotImageView];
+        reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(self, sel_registerName("_addBoundsMatchingConstraintsForView:"), snapshotImageView);
+        
         __kindof UIView *iconView = self.iconView;
         [self addSubview:iconView];
         iconView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -118,7 +113,7 @@
         statusLabel.translatesAutoresizingMaskIntoConstraints = NO;
         [NSLayoutConstraint activateConstraints:@[
             [statusLabel.centerXAnchor constraintEqualToAnchor:self.centerXAnchor],
-            [statusLabel.centerYAnchor constraintEqualToAnchor:self.centerYAnchor]
+            [statusLabel.bottomAnchor constraintEqualToAnchor:self.bottomAnchor]
         ]];
         
         self.configuration = configuration;
@@ -129,8 +124,9 @@
 
 - (void)dealloc {
     [_configuration release];
-    [_statusLabel release];
     [_iconView release];
+    [_snapshotImageView release];
+    [_statusLabel release];
     [super dealloc];
 }
 
@@ -138,11 +134,22 @@
     return [configuration isKindOfClass:[CCPAppSwitcherIconContentConfiguration class]];
 }
 
+- (UIImageView *)_snapshotImageView {
+    if (auto snapshotImageView = _snapshotImageView) return snapshotImageView;
+    
+    UIImageView *snapshotImageView = [UIImageView new];
+    snapshotImageView.contentMode = UIViewContentModeScaleAspectFit;
+    
+    _snapshotImageView = snapshotImageView;
+    return snapshotImageView;
+}
+
 - (__kindof UIView *)_iconView {
     if (auto iconView = _iconView) return iconView;
     
     __kindof UIView *iconView = [objc_lookUpClass("DBIconView") new];
     
+    iconView.transform = CGAffineTransformMakeScale(0.5, 0.5);
     reinterpret_cast<void (*)(id, SEL, id)>(objc_msgSend)(iconView, sel_registerName("setDelegate:"), self);
     
     _iconView = iconView;
@@ -186,6 +193,30 @@
         default:
             self.statusLabel.text = [NSString stringWithFormat:@"Status: %ld", copy.itemModel.state];
             break;
+    }
+    
+    //
+    
+    NSString *bundleIdentifier = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(copy.itemModel.applicationInfo, sel_registerName("bundleIdentifier"));
+    id snapshotMenifest = copy.itemModel.snapshotMenifest;
+    id manifestImpl = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(snapshotMenifest, sel_registerName("manifestImpl"));
+    NSDictionary<NSString *, id> *_snapshotGroupsByID;
+    assert(object_getInstanceVariable(manifestImpl, "_snapshotGroupsByID", reinterpret_cast<void **>(&_snapshotGroupsByID)) != NULL);
+    
+    for (NSString *sceneID in _snapshotGroupsByID.allKeys) {
+        if (![sceneID hasPrefix:[NSString stringWithFormat:@"sceneID:%@", bundleIdentifier]]) continue;
+        
+        id group = _snapshotGroupsByID[sceneID];
+        
+        NSSet *snapshots = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(group, sel_registerName("snapshots"));
+        for (id snapshot in snapshots) {
+            id snapshotImage = reinterpret_cast<id (*)(id, SEL, NSInteger)>(objc_msgSend)(snapshot, sel_registerName("imageForInterfaceOrientation:"), 0);
+            
+            if (snapshotImage != nil) {
+                self.snapshotImageView.image = snapshotImage;
+                break;
+            }
+        }
     }
 }
 

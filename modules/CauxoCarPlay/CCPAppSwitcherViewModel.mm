@@ -154,7 +154,11 @@
             }
         }
         
-        CCPAppSwitcherItemModel *itemModel = [[CCPAppSwitcherItemModel alloc] initWithApplicationInfo:applicationInfo state:state];
+        id snapshotMenifest = reinterpret_cast<id (*)(id, SEL, id)>(objc_msgSend)([objc_lookUpClass("XBApplicationSnapshotManifest") alloc], sel_registerName("initWithApplicationInfo:"), applicationInfo);
+        
+        CCPAppSwitcherItemModel *itemModel = [[CCPAppSwitcherItemModel alloc] initWithApplicationInfo:applicationInfo state:state snapshotMenifest:snapshotMenifest];
+        [snapshotMenifest release];
+        
         [snapshot appendItemsWithIdentifiers:@[itemModel] intoSectionWithIdentifier:[NSNull null]];
         [itemModel release];
     }
