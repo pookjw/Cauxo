@@ -204,8 +204,17 @@
     }
     
     [allSnapshots sortedArrayUsingComparator:^NSComparisonResult(id  _Nonnull obj1, id  _Nonnull obj2) {
-        NSDate *date_1 = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(obj1, sel_registerName("lastUsedDate"));
-        NSDate *date_2 = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(obj2, sel_registerName("lastUsedDate"));
+        NSString * _Nullable launchInterfaceIdentifier_1 = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(obj1, sel_registerName("launchInterfaceIdentifier"));
+        NSString * _Nullable launchInterfaceIdentifier_2 = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(obj2, sel_registerName("launchInterfaceIdentifier"));
+        
+        if ((launchInterfaceIdentifier_1 == nil) and (launchInterfaceIdentifier_2 != nil)) {
+            return NSOrderedAscending;
+        } else if ((launchInterfaceIdentifier_1 != nil) and (launchInterfaceIdentifier_2 == nil)) {
+            return NSOrderedDescending;
+        }
+        
+        NSDate *date_1 = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(obj1, sel_registerName("creationDate"));
+        NSDate *date_2 = reinterpret_cast<id (*)(id, SEL)>(objc_msgSend)(obj2, sel_registerName("creationDate"));
         
         return [date_2 compare:date_1];
     }];

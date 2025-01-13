@@ -5,7 +5,6 @@
 #include <signal.h>
 #import "ccp+hook.hpp"
 #import "CCPAppSwitcherViewController.h"
-#import "CCPTargetResolver.h"
 
 void *appSwitcherControllerKey = &appSwitcherControllerKey;
 
